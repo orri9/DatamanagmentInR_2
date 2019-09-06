@@ -1,0 +1,129 @@
+---
+#title: "Verkefni2"
+#author: "Orri Leví Úlfarsson"
+#date: "February 19, 2018"
+#output: html_document
+---
+
+####set inn pakkana sem eg ætla að nota
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(knitr)
+```
+
+####setja rétt directory
+```{r}
+setwd("/Users/orril/OneDrive/Skóli/Líkindareikningur og Tölfræði/R")
+```
+
+####lesa inn skjalið husnaedi.txt
+```{r}
+OLU <- read.table("husnaedi.txt", header=TRUE,sep= ";")
+```
+
+
+##Liður A
+
+####ákveða hvaða hverfi
+```{r}
+set.seed(0510)
+hverfi<-sample(c(80,130,160,200),1)
+hverfi
+```
+
+####Ég fæ þá út "[1] 200" þannig að ég vinn með íbúðareignir í árbænum
+
+####lögum Íbúðareign og Einbýlishús
+```{r}
+OLU$teg_eign <-as.factor(OLU$teg_eign)
+levels(OLU$teg_eign)
+levels(OLU$teg_eign)<-c("Íbúðareign", "Einbýlishús")
+str(OLU)
+```
+
+####lögum núvirði "ï..nuvirdi"
+```{r}
+names(OLU)[1]<-"nuvirdi"
+```
+
+####Notum núna filter
+```{r}
+OLU <-filter(OLU, OLU$matssvaedi %in% hverfi)
+OLU <-filter(OLU, teg_eign=="Íbúðareign")
+levels(OLU$teg_eign)<-c("NULL","Árbær")
+```
+
+
+##Liður B
+
+####Teiknum stuðlarit af verði íbúðanna
+```{r}
+ggplot(OLU,aes(x=nuvirdi)) + 
+geom_histogram(fill = "blue",col="black",bins = 30) + 
+xlab('Núvirði eigna') + 
+ylab('Fjöldi eigna') 
+```
+
+Á grafinu hér fyrir ofan sést dreifing núvirðiseigna í Árbænum  samkvæmt tölum Þjóðskrá Íslands árið 2017 með (meðaltal) $\mu=$ `r round(mean(OLU$nuvirdi),2)` og (dreifni) $\sigma^2=$ `r round(var(OLU$nuvirdi),2)`
+
+
+
+##Liður C
+
+####Byrjum á því að finna staerd1
+```{r}
+staerd1 <- replicate(10000, mean(sample(OLU$nuvirdi, 10, replace=F )))
+```
+
+####Finnum svo hinar stærðirnar á svipaðan hátt
+```{r}
+staerd2 <- replicate(10000, mean(sample(OLU$nuvirdi, 30, replace=F )))
+staerd3 <- replicate(10000, mean(sample(OLU$nuvirdi, 100, replace=F)))
+staerd4 <- replicate(10000, mean(sample(OLU$nuvirdi, 200, replace=F)))
+```
+
+
+
+##Liður D
+
+####Setjum allar stærðir á sama hátt og breytum í long
+```{r}
+OLU2<-data.frame(staerd1, staerd2, staerd3, staerd4)
+OLU2.long<-gather(OLU2, staerd, medaltal)
+```
+####Teiknum upp myndina
+```{r}
+ggplot(OLU2.long, aes(medaltal)) +
+geom_histogram(fill = "black",col="white",bins = 30) + 
+facet_wrap(~staerd) + 
+xlab('Meðaltal') + 
+ylab('Fjöldi eigna')
+```
+
+
+##Liður E
+
+####Sama og í lið D nema með scale stillt sem "free" fyrir x
+```{r}
+ggplot(OLU2.long, aes(medaltal)) +
+geom_histogram(fill = "black",col="white",bins = 30) + 
+facet_wrap(~staerd, scales="free_x") + 
+xlab('Meðaltal') + 
+ylab('Fjöldi eigna')
+```
+
+
+##Liður F
+
+####Tafla sem sýnir meðaltölin og dreifni
+```{r}
+group_by(OLU2.long, staerd) %>%
+  summarise(Meðaltal=mean(medaltal), Dreifni=var(medaltal))
+```
+
+
+##liður G
+
+Ég hermdi eftir úrtaksdreifingu meðaltala úr 10.000 úrtökum með hækkanandi gildi fyrir n(10, 30, 100, 200). Lögmál mikils fjölda segir að því stærra sem n er því nær er meðaltalið úrtaksmeðaltalinu$\bar{X}_n$ hið sanna meðaltal ($\mu$) í þýði, þegar $n \to \infty$. CLT segir að því stærra sem n, þá nálgast dreifing meðaltala útaksdreifingarinnar normal-dreifingu. Eftir því sem fjöldi staka í úrtaki eykst(s.s. stærra n). minnkar dreifni($\sigma^2$) meðaltala og væntigildi dreifingarinnar nálgast $\mu$. Við sjáum því á myndunum og töflunni hvernig dreifingin nálgast meira normal-dreifingu eftir því sem að n stækkar og hvernig dreifnin minnkar.
